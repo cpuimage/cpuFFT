@@ -21,10 +21,13 @@ cmplx cmplx_mul_add(const cmplx c, const cmplx a, const cmplx b) {
     return ret;
 }
 
-void fft_Stockham(cmplx *input, cmplx *output, size_t n, int flag) {
+void fft_Stockham(const cmplx *input, cmplx *output, size_t n, int flag) {
     size_t half = n >> 1;
-    cmplx *tmp = (cmplx *) calloc(sizeof(cmplx), n);
-    cmplx *y = (cmplx *) calloc(sizeof(cmplx), n);
+    cmplx *buffer = (cmplx *) calloc(sizeof(cmplx), n * 2);
+    if (buffer == NULL)
+        return;
+    cmplx *tmp = buffer;
+    cmplx *y = tmp + n;
     memcpy(y, input, sizeof(cmplx) * n);
     for (size_t r = half, l = 1; r >= 1; r >>= 1) {
         cmplx *tp = y;
@@ -51,13 +54,12 @@ void fft_Stockham(cmplx *input, cmplx *output, size_t n, int flag) {
         l <<= 1;
     }
     memcpy(output, y, sizeof(cmplx) * n);
-    free(tmp);
-    free(y);
+    free(buffer);
 }
 
-void fft_radix3(cmplx *in, cmplx *result, size_t n, int flag) {
+void fft_radix3(const cmplx *input, cmplx *output, size_t n, int flag) {
     if (n < 2) {
-        memcpy(result, in, sizeof(cmplx) * n);
+        output[0] = input[0];
         return;
     }
     size_t radix = 3;
@@ -68,7 +70,7 @@ void fft_radix3(cmplx *in, cmplx *result, size_t n, int flag) {
     cmplx *f2 = f1 + np;
     for (size_t i = 0; i < np; i++) {
         for (size_t j = 0; j < radix; j++) {
-            res[i + j * np] = in[radix * i + j];
+            res[i + j * np] = input[radix * i + j];
         }
     }
     fft_radix3(f0, f0, np, flag);
@@ -86,7 +88,7 @@ void fft_radix3(cmplx *in, cmplx *result, size_t n, int flag) {
     for (size_t j = 0; j < radix; j++) {
         cmplx wj = w;
         for (size_t k = 0; k < np; k++) {
-            result[k + j * np] = cmplx_mul_add(f0[k], cmplx_mul_add(f1[k], f2[k], wj), wj);
+            output[k + j * np] = cmplx_mul_add(f0[k], cmplx_mul_add(f1[k], f2[k], wj), wj);
             const float wjr = wj.real;
             wj.real = (wjr * wt.real) - (wj.imag * wt.imag);
             wj.imag = (wj.imag * wt.real) + (wjr * wt.imag);
@@ -98,9 +100,9 @@ void fft_radix3(cmplx *in, cmplx *result, size_t n, int flag) {
     free(res);
 }
 
-void fft_radix5(cmplx *x, cmplx *result, size_t n, int flag) {
+void fft_radix5(const cmplx *input, cmplx *output, size_t n, int flag) {
     if (n < 2) {
-        memcpy(result, x, sizeof(cmplx) * n);
+        output[0] = input[0];
         return;
     }
     size_t radix = 5;
@@ -113,7 +115,7 @@ void fft_radix5(cmplx *x, cmplx *result, size_t n, int flag) {
     cmplx *f4 = f3 + np;
     for (size_t i = 0; i < np; i++) {
         for (size_t j = 0; j < radix; j++) {
-            res[i + j * np] = x[radix * i + j];
+            res[i + j * np] = input[radix * i + j];
         }
     }
     fft_radix5(f0, f0, np, flag);
@@ -133,7 +135,7 @@ void fft_radix5(cmplx *x, cmplx *result, size_t n, int flag) {
     for (size_t j = 0; j < radix; j++) {
         cmplx wj = w;
         for (size_t k = 0; k < np; k++) {
-            result[k + j * np] = cmplx_mul_add(f0[k], cmplx_mul_add(f1[k], cmplx_mul_add(f2[k],
+            output[k + j * np] = cmplx_mul_add(f0[k], cmplx_mul_add(f1[k], cmplx_mul_add(f2[k],
                                                                                          cmplx_mul_add(f3[k], f4[k],
                                                                                                        wj), wj), wj),
                                                wj);
@@ -148,9 +150,9 @@ void fft_radix5(cmplx *x, cmplx *result, size_t n, int flag) {
     free(res);
 }
 
-void fft_radix6(cmplx *input, cmplx *output, size_t n, int flag) {
+void fft_radix6(const cmplx *input, cmplx *output, size_t n, int flag) {
     if (n < 2) {
-        memcpy(output, input, sizeof(cmplx) * n);
+        output[0] = input[0];
         return;
     }
     size_t radix = 6;
@@ -203,9 +205,9 @@ void fft_radix6(cmplx *input, cmplx *output, size_t n, int flag) {
     free(res);
 }
 
-void fft_radix7(cmplx *x, cmplx *result, size_t n, int flag) {
+void fft_radix7(const cmplx *input, cmplx *output, size_t n, int flag) {
     if (n < 2) {
-        memcpy(result, x, sizeof(cmplx) * n);
+        output[0] = input[0];
         return;
     }
     size_t radix = 7;
@@ -220,7 +222,7 @@ void fft_radix7(cmplx *x, cmplx *result, size_t n, int flag) {
     cmplx *f6 = f5 + np;
     for (size_t i = 0; i < np; i++) {
         for (size_t j = 0; j < radix; j++) {
-            res[i + j * np] = x[radix * i + j];
+            res[i + j * np] = input[radix * i + j];
         }
     }
     fft_radix7(f0, f0, np, flag);
@@ -242,7 +244,7 @@ void fft_radix7(cmplx *x, cmplx *result, size_t n, int flag) {
     for (size_t j = 0; j < radix; j++) {
         cmplx wj = w;
         for (size_t k = 0; k < np; k++) {
-            result[k + j * np] = cmplx_mul_add(f0[k], cmplx_mul_add(f1[k], cmplx_mul_add(f2[k],
+            output[k + j * np] = cmplx_mul_add(f0[k], cmplx_mul_add(f1[k], cmplx_mul_add(f2[k],
                                                                                          cmplx_mul_add(f3[k],
                                                                                                        cmplx_mul_add(
                                                                                                                f4[k],
@@ -263,12 +265,14 @@ void fft_radix7(cmplx *x, cmplx *result, size_t n, int flag) {
     free(res);
 }
 
-void fft_Bluestein(cmplx *input, cmplx *output, size_t n, int flag) {
+void fft_Bluestein(const cmplx *input, cmplx *output, size_t n, int flag) {
     size_t m = 1 << ((unsigned int) (ilogbf((float) (2 * n - 1))));
     if (m < 2 * n - 1) {
         m <<= 1;
     }
     cmplx *y = (cmplx *) calloc(sizeof(cmplx), 3 * m);
+    if (y == NULL)
+        return;
     cmplx *w = y + m;
     cmplx *ww = w + m;
     float a0 = (float) M_PI / n;
@@ -336,10 +340,9 @@ size_t base(size_t n) {
     return n;
 }
 
-void FFT(cmplx *input, cmplx *output, size_t n) {
-    memset(output, 0, sizeof(cmplx) * n);
+void FFT(const cmplx *input, cmplx *output, size_t n) {
     if (n < 2) {
-        memcpy(output, input, sizeof(cmplx) * n);
+        output[0] = input[0];
         return;
     }
     size_t p = base(n);
@@ -365,10 +368,9 @@ void FFT(cmplx *input, cmplx *output, size_t n) {
     }
 }
 
-void IFFT(cmplx *input, cmplx *output, size_t n) {
-    memset(output, 0, sizeof(cmplx) * n);
+void IFFT(const cmplx *input, cmplx *output, size_t n) {
     if (n < 2) {
-        memcpy(output, input, sizeof(cmplx) * n);
+        output[0] = input[0];
         return;
     }
     size_t p = base(n);
